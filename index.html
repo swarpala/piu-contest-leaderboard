@@ -101,10 +101,33 @@
   button:hover{transform:translateY(-1px);box-shadow:0 6px 18px rgba(255,46,136,0.28);}
   button:disabled{opacity:.5;cursor:not-allowed;transform:none;box-shadow:none;}
 
+  .btn-row{display:flex;align-items:center;gap:10px;}
+  .btn-row button{margin-top:14px;}
+  .secondary-btn{
+    background:#0d0d18;
+    border:1px solid var(--line);
+    color:var(--text);
+    padding:12px 18px;
+    font-family:'Noto Sans Lisu',sans-serif;
+    font-weight:700;
+    font-size:15px;
+    letter-spacing:.04em;
+  }
+  .secondary-btn:hover{border-color:var(--cyan);color:var(--cyan);box-shadow:none;transform:none;}
+
   #status{font-size:13px;color:var(--muted);margin-top:10px;min-height:18px;}
   #status.err{color:var(--magenta);}
 
-  table{width:100%;border-collapse:collapse;}
+  .table-scroll{
+    width:100%;
+    overflow-x:auto;
+    -webkit-overflow-scrolling:touch;
+    scrollbar-width:thin;
+    scrollbar-color:var(--line) transparent;
+  }
+  .table-scroll::-webkit-scrollbar{height:8px;}
+  .table-scroll::-webkit-scrollbar-thumb{background:var(--line);border-radius:4px;}
+  table{width:100%;min-width:640px;border-collapse:collapse;}
   thead th{
     text-align:left;
     font-family:'Noto Sans Lisu',sans-serif;
@@ -150,11 +173,6 @@
   .views{color:var(--muted);font-size:13px;white-space:nowrap;}
 
   footer{margin-top:24px;color:var(--muted);font-size:12px;text-align:center;}
-
-  @media (max-width:560px){
-    thead th:nth-child(6){display:none;}
-    tbody td:nth-child(6){display:none;}
-  }
 </style>
 </head>
 <body>
@@ -174,26 +192,30 @@
     </div>
     <div class="keyhint">
       API 키는 브라우저에만 남고 저장되지 않습니다 (새로고침하면 다시 입력해야 해요).
-      키 발급: <a href="https://console.cloud.google.com/apis/library/youtube.googleapis.com" target="_blank" rel="noopener">Google Cloud Console에서 "YouTube Data API v3" 활성화 → 사용자 인증 정보에서 API 키 생성</a>
     </div>
-    <button id="loadBtn">순위 불러오기</button>
+    <div class="btn-row">
+      <button id="loadBtn">순위 불러오기</button>
+      <button id="refreshBtn" class="secondary-btn" type="button">새로고침</button>
+    </div>
     <div id="status"></div>
   </div>
 
   <div class="panel" id="resultsPanel" style="display:none;">
-    <table>
-      <thead>
-        <tr>
-          <th>#</th>
-          <th>ID</th>
-          <th>제목</th>
-          <th>아티스트</th>
-          <th>좋아요</th>
-          <th>조회수</th>
-        </tr>
-      </thead>
-      <tbody id="tbody"></tbody>
-    </table>
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>ID</th>
+            <th>제목</th>
+            <th>아티스트</th>
+            <th>좋아요</th>
+            <th>조회수</th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
   </div>
 
   <footer>YouTube Data API v3 사용 · 비공개 영상이거나 좋아요 수가 공개되지 않은 영상은 목록에서 제외될 수 있어요.</footer>
@@ -202,6 +224,8 @@
 <script>
 const PLAYLIST_ID = 'PLK95yj62t_z0';
 const loadBtn = document.getElementById('loadBtn');
+const refreshBtn = document.getElementById('refreshBtn');
+const apiKeyInput = document.getElementById('apiKey');
 const statusEl = document.getElementById('status');
 const resultsPanel = document.getElementById('resultsPanel');
 const tbody = document.getElementById('tbody');
@@ -293,15 +317,15 @@ function render(videos){
     `;
     tbody.appendChild(tr);
   });
-  resultsPanel.style.display = videos.length ? 'block' : 'none';
+  if(videos.length) resultsPanel.style.display = 'block';
 }
 
-loadBtn.addEventListener('click', async () => {
-  const apiKey = document.getElementById('apiKey').value.trim();
+async function loadData(){
+  const apiKey = apiKeyInput.value.trim();
   if(!apiKey){ setStatus('API 키를 입력해주세요.', true); return; }
 
   loadBtn.disabled = true;
-  resultsPanel.style.display = 'none';
+  refreshBtn.disabled = true;
   setStatus('재생목록 불러오는 중...');
 
   try{
@@ -323,6 +347,16 @@ loadBtn.addEventListener('click', async () => {
     setStatus(err.message || '오류가 발생했습니다.', true);
   }finally{
     loadBtn.disabled = false;
+    refreshBtn.disabled = false;
+  }
+}
+
+loadBtn.addEventListener('click', loadData);
+refreshBtn.addEventListener('click', loadData);
+apiKeyInput.addEventListener('keydown', (e) => {
+  if(e.key === 'Enter'){
+    e.preventDefault();
+    loadData();
   }
 });
 </script>
